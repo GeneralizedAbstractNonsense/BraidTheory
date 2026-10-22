@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>B4, Braids group</title>
+  <title>B4 Braid Group and Knot Visualizer</title>
   <style>
     * {
       box-sizing: border-box;
@@ -18,9 +17,9 @@
       width: 100vw;
       height: 100vh;
       overflow: hidden;
-      background: linear-gradient(135deg, #1a1c23 0%, #0d0e12 100%);
-      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      color: #ffffff;
+      background: #090d16;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #f1f5f9;
     }
 
     #canvas-container {
@@ -32,7 +31,16 @@
       z-index: 1;
     }
 
-    /* UI Overlay */
+    /* Glassmorphism Panels */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    }
+
     .ui-layer {
       position: absolute;
       top: 0;
@@ -44,132 +52,302 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 20px;
+      padding: 24px;
     }
 
+    /* Header */
     .header {
       pointer-events: auto;
-      background: rgba(20, 22, 30, 0.75);
-      backdrop-filter: blur(10px);
-      padding: 15px 25px;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 16px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
     }
 
-    .header h1 {
-      font-size: 1.2rem;
-      font-weight: 600;
-      letter-spacing: 1px;
-      color: #e2e8f0;
-    }
-
-    .braid-word {
-      font-size: 1.4rem;
-      font-weight: bold;
-      color: #60a5fa;
-      margin-top: 4px;
-      font-family: 'Courier New', Courier, monospace;
-    }
-
-    .btn-reset {
-      background: #ef4444;
-      color: white;
-      border: none;
-      padding: 10px 18px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-    }
-
-    .btn-reset:hover {
-      background: #dc2626;
-      transform: translateY(-1px);
-    }
-
-    .controls-panel {
-      pointer-events: auto;
-      background: rgba(20, 22, 30, 0.75);
-      backdrop-filter: blur(10px);
-      padding: 15px;
-      border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+    .brand-title {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      align-self: center;
-      margin-bottom: 10px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-      max-width: 100%;
+      gap: 2px;
     }
 
-    .controls-title {
-      font-size: 0.85rem;
-      text-align: center;
-      color: #94a3b8;
+    .brand-title h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(96, 165, 250, 0.3);
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
+    }
+
+    .braid-word-display {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #38bdf8;
+      font-family: 'Fira Code', 'Courier New', monospace;
+      letter-spacing: 2px;
+      margin-top: 4px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* Buttons */
+    .btn {
+      pointer-events: auto;
+      border: none;
+      outline: none;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-closure {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-closure.active {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+      border-color: #34d399;
+    }
+
+    .btn-secondary {
+      background: rgba(51, 65, 85, 0.7);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(71, 85, 105, 0.9);
+    }
+
+    .btn-danger {
+      background: rgba(225, 29, 72, 0.85);
+      color: #ffffff;
+    }
+
+    .btn-danger:hover {
+      background: #be123c;
+    }
+
+    /* Controls Panel */
+    .controls-panel {
+      pointer-events: auto;
+      padding: 16px 24px;
+      align-self: center;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: fit-content;
+      margin-bottom: 8px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .control-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #94a3b8;
+      font-weight: 600;
+      text-align: center;
     }
 
     .button-group {
       display: flex;
       gap: 8px;
-      justify-content: center;
-      flex-wrap: wrap;
     }
 
-    .generator-btn {
+    .gen-btn {
+      pointer-events: auto;
       background: #3b82f6;
-      color: white;
+      color: #ffffff;
       border: none;
       padding: 10px 16px;
       border-radius: 8px;
-      font-size: 1rem;
-      font-weight: bold;
+      font-size: 1.05rem;
+      font-weight: 700;
       cursor: pointer;
+      min-width: 58px;
       transition: all 0.15s ease;
-      min-width: 55px;
-      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
-      touch-action: manipulation;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
     }
 
-    .generator-btn:active {
-      transform: scale(0.95);
+    .gen-btn:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
     }
 
-    .generator-btn.inv {
+    .gen-btn.inv {
       background: #8b5cf6;
-      box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35);
     }
 
-    .instructions {
+    .gen-btn.inv:hover {
+      background: #7c3aed;
+    }
+
+    /* Information Panel */
+    .info-panel {
       position: absolute;
-      bottom: 20px;
-      left: 20px;
-      background: rgba(20, 22, 30, 0.6);
-      backdrop-filter: blur(8px);
-      padding: 10px 15px;
-      border-radius: 8px;
+      bottom: 24px;
+      right: 24px;
+      pointer-events: auto;
+      padding: 16px 20px;
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .info-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #cbd5e1;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 6px;
+    }
+
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+
+    .info-value {
+      font-weight: 600;
+      color: #f1f5f9;
+      font-family: monospace;
+    }
+
+    .strand-legend {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .strand-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 4px 0;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .strand-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: absolute;
+      top: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: auto;
+      padding: 10px 20px;
+      border-radius: 30px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(96, 165, 250, 0.4);
+      color: #38bdf8;
+      font-size: 0.88rem;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      z-index: 100;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(10px);
+    }
+
+    /* Instructions overlay */
+    .instructions-hint {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      pointer-events: auto;
+      padding: 14px 18px;
+      max-width: 320px;
       font-size: 0.8rem;
       color: #94a3b8;
-      pointer-events: auto;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      line-height: 1.45;
     }
 
-    @media (max-width: 600px) {
-      .header h1 { font-size: 1rem; }
-      .braid-word { font-size: 1.1rem; }
-      .generator-btn { padding: 8px 12px; font-size: 0.9rem; min-width: 45px; }
-      .instructions { display: none; }
+    .instructions-hint b {
+      color: #f1f5f9;
+    }
+
+    @media (max-width: 840px) {
+      .header { flex-direction: column; gap: 12px; align-items: stretch; }
+      .header-actions { justify-content: center; }
+      .info-panel { display: none; }
+      .instructions-hint { display: none; }
     }
   </style>
 
-  <!-- Three.js e OrbitControls via CDN -->
+  <!-- Three.js and OrbitControls -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
@@ -178,56 +356,102 @@
   <div id="canvas-container"></div>
 
   <div class="ui-layer">
-    <div class="header">
-      <div>
-        <h1>Braid group B₄</h1>
-        <div class="braid-word" id="braidLabel">1 (Identità)</div>
+    <!-- Header Bar -->
+    <div class="glass-panel header">
+      <div class="brand-title">
+        <h1>Braid Group B₄ & Knot Visualizer <span class="badge">3D Theory</span></h1>
+        <div class="braid-word-display" id="braidLabel">e (Identity)</div>
       </div>
-      <button class="btn-reset" onclick="resetBraid()">Reset</button>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="normalizeBraid()" title="Reduce braid word using Artin relations">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          Normalize Braid
+        </button>
+        <button class="btn btn-closure" id="closureBtn" onclick="toggleKnotClosure()" title="Close braid terminals to form a knot or link">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span id="closureBtnLabel">Knot Closure</span>
+        </button>
+        <button class="btn btn-danger" onclick="resetBraid()" title="Clear word">Reset</button>
+      </div>
     </div>
 
-    <div class="instructions">
-       <b>Interazione:</b> Tocca/Clicca sulle maniglie a destra oppure usati i pulsanti in basso per intrecciare i fili.
+    <!-- Notification Toast -->
+    <div id="toast" class="toast">Braid Normalized!</div>
+
+    <!-- Instructions Overlay -->
+    <div class="glass-panel instructions-hint">
+      <b>Interactive Controls:</b><br>
+      • Click generator buttons or <b>click 3D strand handles</b> to add crossings.<br>
+      • Click <b>Normalize Braid</b> to perform handle reductions ($\sigma_i \sigma_i^{-1} = e$).<br>
+      • Click <b>Knot Closure</b> to form standard Alexander knot/link closures.
     </div>
 
-    <div class="controls-panel">
-      <div class="controls-title">Generatori del gruppo B₄</div>
+    <!-- Controls Panel -->
+    <div class="glass-panel controls-panel">
+      <div class="control-label">Generators (Artin Group B₄)</div>
       <div class="button-group">
-        <button class="generator-btn" onclick="addGenerator(1, 1)">σ₁</button>
-        <button class="generator-btn inv" onclick="addGenerator(1, -1)">σ₁⁻¹</button>
-        <button class="generator-btn" onclick="addGenerator(2, 1)">σ₂</button>
-        <button class="generator-btn inv" onclick="addGenerator(2, -1)">σ₂⁻¹</button>
-        <button class="generator-btn" onclick="addGenerator(3, 1)">σ₃</button>
-        <button class="generator-btn inv" onclick="addGenerator(3, -1)">σ₃⁻¹</button>
+        <button class="gen-btn" onclick="addGenerator(1, 1)">σ₁</button>
+        <button class="gen-btn inv" onclick="addGenerator(1, -1)">σ₁⁻¹</button>
+        <button class="gen-btn" onclick="addGenerator(2, 1)">σ₂</button>
+        <button class="gen-btn inv" onclick="addGenerator(2, -1)">σ₂⁻¹</button>
+        <button class="gen-btn" onclick="addGenerator(3, 1)">σ₃</button>
+        <button class="gen-btn inv" onclick="addGenerator(3, -1)">σ₃⁻¹</button>
+        <button class="btn btn-secondary" onclick="undoGenerator()" title="Undo last step">Undo</button>
+      </div>
+    </div>
+
+    <!-- Info Panel -->
+    <div class="glass-panel info-panel">
+      <div class="info-title">Properties</div>
+      <div class="info-item">
+        <span>Word Length:</span>
+        <span class="info-value" id="wordLengthVal">0</span>
+      </div>
+      <div class="info-item">
+        <span>Permutation:</span>
+        <span class="info-value" id="permutationVal">(1)(2)(3)(4)</span>
+      </div>
+      <div class="info-item" id="knotComponentsRow" style="display: none;">
+        <span>Closed Topology:</span>
+        <span class="info-value" style="color: #34d399;" id="knotComponentsVal">4 Components</span>
+      </div>
+      
+      <div class="info-title" style="margin-top: 4px;">Strands</div>
+      <div class="strand-legend">
+        <div class="strand-badge"><div class="strand-dot" style="background:#ef4444;"></div>1</div>
+        <div class="strand-badge"><div class="strand-dot" style="background:#eab308;"></div>2</div>
+        <div class="strand-badge"><div class="strand-dot" style="background:#06b6d4;"></div>3</div>
+        <div class="strand-badge"><div class="strand-dot" style="background:#10b981;"></div>4</div>
       </div>
     </div>
   </div>
 
   <script>
-    // --- COSTANTI E CONFIGURAZIONE ---
+    // --- COLOR & GEOMETRY CONFIGURATION ---
     const STRAND_COLORS = [
-      0x2ecc71, // Verde (Top - Posizione 3)
-      0x3498db, // Blu (Posizione 2)
-      0xf1c40f, // Giallo (Posizione 1)
-      0xe74c3c  // Rosso (Bottom - Posizione 0)
-    ].reverse(); // Indici: 0: Rosso, 1: Giallo, 2: Blu, 3: Verde
+      0xef4444, // Red (Bottom - Strand 0)
+      0xeab308, // Yellow (Strand 1)
+      0x06b6d4, // Cyan (Strand 2)
+      0x10b981  // Emerald (Top - Strand 3)
+    ];
 
     const STRAND_POSITIONS_Y = [-2.25, -0.75, 0.75, 2.25];
     const DISC_X_MIN = -5.0;
     const DISC_X_MAX = 5.0;
 
-    // --- VARIABILI DI STATO ---
-    let braidWord = []; // Es. [{index: 1, sign: 1}, {index: 2, sign: -1}]
-    let animatedProgress = 1.0; // 0 to 1 per l'animazione di transizione
+    // --- STATE VARIABLES ---
+    let braidWord = []; // Array of {index: 1..3, sign: 1|-1}
+    let animatedProgress = 1.0;
     let isAnimating = false;
-    
-    // --- SCENA THREE.JS ---
+    let isKnotClosed = false;
+
+    // --- THREE.JS SCENE SETUP ---
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x1a1c23, 0.03);
+    scene.fog = new THREE.FogExp2(0x090d16, 0.025);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 1.5, 13);
+    camera.position.set(0, 2, 14);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -238,25 +462,24 @@
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.maxDistance = 25;
-    controls.minDistance = 5;
+    controls.maxDistance = 30;
+    controls.minDistance = 4;
 
-    // --- ILLUMINAZIONE ---
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
+    // --- LIGHTING ---
+    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
 
     const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight1.position.set(10, 15, 10);
+    dirLight1.position.set(12, 18, 12);
     scene.add(dirLight1);
 
-    const dirLight2 = new THREE.DirectionalLight(0x60a5fa, 0.4);
-    dirLight2.position.set(-10, -10, -10);
+    const dirLight2 = new THREE.DirectionalLight(0x38bdf8, 0.4);
+    dirLight2.position.set(-12, -10, -10);
     scene.add(dirLight2);
 
-    // --- ELEMENTI 3D STRUTTURALI (DISCHI) ---
-    const discGeometry = new THREE.CylinderGeometry(3.2, 3.2, 0.25, 48);
+    // --- DISCS & BUSHINGS ---
+    const discGeometry = new THREE.CylinderGeometry(3.2, 3.2, 0.2, 48);
     const discMaterial = new THREE.MeshStandardMaterial({
-      color: 0x94a3b8,
+      color: 0x334155,
       metalness: 0.8,
       roughness: 0.2,
       transparent: true,
@@ -273,10 +496,10 @@
     rightDisc.position.x = DISC_X_MAX;
     scene.add(rightDisc);
 
-    // Boccole sui dischi
+    // Ring Bushings
     STRAND_POSITIONS_Y.forEach(y => {
       const holeGeo = new THREE.TorusGeometry(0.22, 0.05, 16, 32);
-      const holeMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.9, roughness: 0.1 });
+      const holeMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.1 });
       
       const hLeft = new THREE.Mesh(holeGeo, holeMat);
       hLeft.rotation.y = Math.PI / 2;
@@ -289,91 +512,91 @@
       scene.add(hRight);
     });
 
-    // --- GESTIONE MESH DEI FILI E MANIGLIE INTERATTIVE ---
+    // --- MESH CONTAINERS ---
     const strandMeshes = [];
     const handleMeshes = [];
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
+    const closureMeshes = [];
 
-    // Creazione oggetti filo e maniglie destre
     for (let i = 0; i < 4; i++) {
-      // Mesh filo
+      // Main Strand Mesh
       const strandMat = new THREE.MeshStandardMaterial({
         color: STRAND_COLORS[i],
-        roughness: 0.3,
-        metalness: 0.2
+        roughness: 0.2,
+        metalness: 0.3
       });
       const strandMesh = new THREE.Mesh(new THREE.BufferGeometry(), strandMat);
       scene.add(strandMesh);
       strandMeshes.push(strandMesh);
 
-      // Maniglia sferica ad ogni estremità destra per interazione touch/click
-      const handleGeo = new THREE.SphereGeometry(0.3, 32, 32);
+      // Interactive Handle Sphere at right terminal
+      const handleGeo = new THREE.SphereGeometry(0.28, 32, 32);
       const handleMat = new THREE.MeshStandardMaterial({
         color: STRAND_COLORS[i],
         roughness: 0.1,
-        metalness: 0.5,
+        metalness: 0.6,
         emissive: STRAND_COLORS[i],
-        emissiveIntensity: 0.2
+        emissiveIntensity: 0.3
       });
       const handleMesh = new THREE.Mesh(handleGeo, handleMat);
       handleMesh.userData = { strandIndex: i };
       scene.add(handleMesh);
       handleMeshes.push(handleMesh);
+
+      // Closure Tube Mesh
+      const closureMat = new THREE.MeshStandardMaterial({
+        color: STRAND_COLORS[i],
+        roughness: 0.25,
+        metalness: 0.3,
+        transparent: true,
+        opacity: 0.9
+      });
+      const closureMesh = new THREE.Mesh(new THREE.BufferGeometry(), closureMat);
+      closureMesh.visible = false;
+      scene.add(closureMesh);
+      closureMeshes.push(closureMesh);
     }
 
-    // --- CALCOLO CURVE ED EVOLUZIONE TRECCIA ---
+    // --- BRAID GEOMETRY GENERATION ---
     function computeStrandCurves(word, tAnim = 1.0) {
       const numSteps = word.length;
-      const strandPaths = [[], [], [], []]; // Punti per ogni filo 0..3
+      const strandPaths = [[], [], [], []];
+      let currentPermutation = [0, 1, 2, 3]; // pos -> strand_id
 
-      // Posizione verticale corrente di ogni filo (traccia permuta)
-      let currentPermutation = [0, 1, 2, 3]; 
-
-      // Numero di campioni lungo l'asse X
-      const totalXSegments = Math.max(1, numSteps) * 20;
       const xSpan = DISC_X_MAX - DISC_X_MIN;
 
-      // Inizializza i punti iniziali al disco sinistro
       for (let s = 0; s < 4; s++) {
         strandPaths[s].push(new THREE.Vector3(DISC_X_MIN, STRAND_POSITIONS_Y[s], 0));
       }
 
       if (numSteps === 0) {
-        // Treccia Identità (Linee rette)
         for (let s = 0; s < 4; s++) {
           strandPaths[s].push(new THREE.Vector3(DISC_X_MAX, STRAND_POSITIONS_Y[s], 0));
         }
       } else {
-        // Costruisci la geometria passo dopo passo lungo l'asse X
         for (let stepIdx = 0; stepIdx < numSteps; stepIdx++) {
           const gen = word[stepIdx];
-          const i = gen.index - 1; // Converti a 0-index (0, 1, 2)
+          const i = gen.index - 1; // 0, 1, or 2
           const sign = gen.sign;
 
           const xStart = DISC_X_MIN + (stepIdx / numSteps) * xSpan;
           const xEnd = DISC_X_MIN + ((stepIdx + 1) / numSteps) * xSpan;
-          const xMid = (xStart + xEnd) / 2;
 
-          // Per l'ultimo passo, applica un'interpolazione graduale per l'animazione
           const isLastStep = (stepIdx === numSteps - 1);
           const factor = isLastStep ? tAnim : 1.0;
 
-          // Trova quali fili occupano attualmente le posizioni i e i+1
-          const strandA = currentPermutation[i];     // Filo in posizione i
-          const strandB = currentPermutation[i + 1]; // Filo in posizione i+1
+          const strandA = currentPermutation[i];
+          const strandB = currentPermutation[i + 1];
 
           const yA = STRAND_POSITIONS_Y[i];
           const yB = STRAND_POSITIONS_Y[i + 1];
 
-          const zDepth = 0.85 * sign; // Profondità 3D per lo scavalcamento
-
+          const zDepth = 0.85 * sign;
           const samples = 12;
+
           for (let s = 1; s <= samples; s++) {
             const frac = s / samples;
             const x = THREE.MathUtils.lerp(xStart, xEnd, frac);
 
-            // Per tutti i fili non coinvolti nello scambio:
             for (let pos = 0; pos < 4; pos++) {
               if (pos !== i && pos !== i + 1) {
                 const st = currentPermutation[pos];
@@ -382,18 +605,15 @@
               }
             }
 
-            // Filo A (va da pos i a pos i+1)
             const yCurrentA = THREE.MathUtils.lerp(yA, THREE.MathUtils.lerp(yA, yB, factor), frac);
             const zCurrentA = Math.sin(frac * Math.PI) * zDepth * factor;
             strandPaths[strandA].push(new THREE.Vector3(x, yCurrentA, zCurrentA));
 
-            // Filo B (va da pos i+1 a pos i)
             const yCurrentB = THREE.MathUtils.lerp(yB, THREE.MathUtils.lerp(yB, yA, factor), frac);
             const zCurrentB = -Math.sin(frac * Math.PI) * zDepth * factor;
             strandPaths[strandB].push(new THREE.Vector3(x, yCurrentB, zCurrentB));
           }
 
-          // Aggiorna la permutazione a fine dello step completo
           if (!isLastStep || tAnim >= 0.99) {
             currentPermutation[i] = strandB;
             currentPermutation[i + 1] = strandA;
@@ -404,7 +624,6 @@
       return { strandPaths, currentPermutation };
     }
 
-    // --- AGGIORNAMENTO GEOMETRIA TRECCIA ---
     function updateBraidGeometries() {
       const { strandPaths, currentPermutation } = computeStrandCurves(braidWord, animatedProgress);
 
@@ -412,98 +631,266 @@
         const points = strandPaths[s];
         const curve = new THREE.CatmullRomCurve3(points);
         
-        // Rigenera la geometria del tubo
         if (strandMeshes[s].geometry) strandMeshes[s].geometry.dispose();
         strandMeshes[s].geometry = new THREE.TubeGeometry(curve, points.length * 2, 0.12, 16, false);
 
-        // Posiziona le maniglie destre alla fine dei fili
         const lastPoint = points[points.length - 1];
         handleMeshes[s].position.copy(lastPoint);
-        handleMeshes[s].position.x = DISC_X_MAX + 0.25; // Sposta leggermente oltre il disco
+        handleMeshes[s].position.x = DISC_X_MAX + 0.3;
+      }
+
+      updateClosureGeometries(currentPermutation);
+    }
+
+    // --- KNOT CLOSURE GEOMETRY (ALEXANDER CLOSURE) ---
+    function updateClosureGeometries(currentPermutation) {
+      if (!isKnotClosed) {
+        closureMeshes.forEach(m => m.visible = false);
+        return;
+      }
+
+      // Connect right position pos to left position pos
+      for (let pos = 0; pos < 4; pos++) {
+        const strandAtPos = currentPermutation[pos];
+        const yVal = STRAND_POSITIONS_Y[pos];
+
+        // Smooth exterior loop points
+        const points = [
+          new THREE.Vector3(DISC_X_MAX + 0.3, yVal, 0),
+          new THREE.Vector3(DISC_X_MAX + 2.2, yVal, 1.8 + pos * 0.6),
+          new THREE.Vector3(0, yVal * 1.6 + (pos - 1.5) * 0.8, 4.0 + pos * 0.8),
+          new THREE.Vector3(DISC_X_MIN - 2.2, yVal, 1.8 + pos * 0.6),
+          new THREE.Vector3(DISC_X_MIN - 0.3, yVal, 0)
+        ];
+
+        const curve = new THREE.CatmullRomCurve3(points);
+        if (closureMeshes[strandAtPos].geometry) closureMeshes[strandAtPos].geometry.dispose();
+        closureMeshes[strandAtPos].geometry = new THREE.TubeGeometry(curve, 36, 0.11, 16, false);
+        closureMeshes[strandAtPos].visible = true;
       }
     }
 
-    // --- GESTIONE INTERAZIONI (TOUCH / MOUSE) ---
-    let selectedHandleIndex = null;
+    // --- BRAID NORMALIZATION / SIMPLIFICATION ALGORITHM ---
+    function reduceBraidWord(word) {
+      let current = word.map(g => ({ ...g }));
 
-    function onPointerDown(event) {
+      function freeCancel(w) {
+        let res = w.map(g => ({ ...g }));
+        let changed = true;
+        while (changed) {
+          changed = false;
+          for (let i = 0; i < res.length; i++) {
+            for (let j = i + 1; j < res.length; j++) {
+              let canCommute = true;
+              for (let k = i + 1; k < j; k++) {
+                if (Math.abs(res[i].index - res[k].index) < 2) {
+                  canCommute = false;
+                  break;
+                }
+              }
+              if (canCommute && res[i].index === res[j].index && res[i].sign === -res[j].sign) {
+                res.splice(j, 1);
+                res.splice(i, 1);
+                changed = true;
+                break;
+              }
+            }
+            if (changed) break;
+          }
+        }
+        return res;
+      }
+
+      let changed = true;
+      let iterations = 0;
+      while (changed && iterations < 100) {
+        iterations++;
+        changed = false;
+
+        let cancelled = freeCancel(current);
+        if (cancelled.length < current.length) {
+          current = cancelled;
+          changed = true;
+          continue;
+        }
+
+        // Apply Artin braid relations (s_i s_{i+1} s_i -> s_{i+1} s_i s_{i+1})
+        for (let i = 0; i <= current.length - 3; i++) {
+          const g1 = current[i], g2 = current[i+1], g3 = current[i+2];
+          if (g1.sign === g2.sign && g2.sign === g3.sign) {
+            if (g1.index === g3.index && Math.abs(g1.index - g2.index) === 1) {
+              let test = current.map(g => ({ ...g }));
+              test[i] = { index: g2.index, sign: g1.sign };
+              test[i+1] = { index: g1.index, sign: g1.sign };
+              test[i+2] = { index: g2.index, sign: g1.sign };
+
+              let testReduced = freeCancel(test);
+              if (testReduced.length < current.length) {
+                current = testReduced;
+                changed = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+      return current;
+    }
+
+    function normalizeBraid() {
       if (isAnimating) return;
+      const initialLen = braidWord.length;
+      const reduced = reduceBraidWord(braidWord);
 
-      const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-      const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+      if (reduced.length < initialLen) {
+        braidWord = reduced;
+        showToast(`Normalized! Word length reduced from ${initialLen} to ${reduced.length}.`);
+        isAnimating = true;
+        animatedProgress = 0.0;
+        updateUI();
+      } else {
+        showToast("Braid is already in canonical simplified form.");
+      }
+    }
 
-      mouse.x = (clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+    // --- INTERACTION & RAYCASTING ---
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let hoveredHandleIndex = null;
+
+    function onPointerMove(event) {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
       raycaster.setFromCamera(mouse, camera);
       const intersects = raycaster.intersectObjects(handleMeshes);
 
       if (intersects.length > 0) {
-        selectedHandleIndex = intersects[0].object.userData.strandIndex;
-        controls.enabled = false; // Disabilita rotazione camera durante il tocco maniglia
-      }
-    }
-
-    function onPointerUp(event) {
-      if (selectedHandleIndex !== null) {
-        // Cliccando su una maniglia adiacente, genera l'intreccio automatico
-        const currentPos = getCurrentPositionOfStrand(selectedHandleIndex);
-        if (currentPos < 3) {
-          addGenerator(currentPos + 1, 1);
-        } else {
-          addGenerator(3, -1);
+        const idx = intersects[0].object.userData.strandIndex;
+        if (hoveredHandleIndex !== idx) {
+          if (hoveredHandleIndex !== null) handleMeshes[hoveredHandleIndex].scale.set(1, 1, 1);
+          hoveredHandleIndex = idx;
+          handleMeshes[idx].scale.set(1.35, 1.35, 1.35);
+          document.body.style.cursor = 'pointer';
         }
-        selectedHandleIndex = null;
+      } else {
+        if (hoveredHandleIndex !== null) {
+          handleMeshes[hoveredHandleIndex].scale.set(1, 1, 1);
+          hoveredHandleIndex = null;
+          document.body.style.cursor = 'default';
+        }
       }
-      controls.enabled = true;
     }
 
-    function getCurrentPositionOfStrand(strandIdx) {
+    function onPointerDown(event) {
+      if (isAnimating || hoveredHandleIndex === null) return;
+      
       const { currentPermutation } = computeStrandCurves(braidWord, 1.0);
-      return currentPermutation.indexOf(strandIdx);
+      const pos = currentPermutation.indexOf(hoveredHandleIndex);
+      
+      if (pos < 3) {
+        addGenerator(pos + 1, 1);
+      } else {
+        addGenerator(3, -1);
+      }
     }
 
-    window.addEventListener('mousedown', onPointerDown);
-    window.addEventListener('mouseup', onPointerUp);
-    window.addEventListener('touchstart', onPointerDown, { passive: true });
-    window.addEventListener('touchend', onPointerUp, { passive: true });
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerdown', onPointerDown);
 
-    // --- AZIONI ED ANIMAZIONI ---
+    // --- USER ACTIONS ---
     function addGenerator(index, sign) {
       if (isAnimating) return;
-
       braidWord.push({ index, sign });
-      updateBraidLabel();
-
-      // Avvia animazione di inserimento
       isAnimating = true;
       animatedProgress = 0.0;
+      updateUI();
+    }
+
+    function undoGenerator() {
+      if (isAnimating || braidWord.length === 0) return;
+      braidWord.pop();
+      isAnimating = true;
+      animatedProgress = 0.0;
+      updateUI();
     }
 
     function resetBraid() {
       braidWord = [];
       animatedProgress = 1.0;
       isAnimating = false;
-      updateBraidLabel();
+      updateUI();
+      updateBraidGeometries();
+      showToast("Braid reset to Identity.");
+    }
+
+    function toggleKnotClosure() {
+      isKnotClosed = !isKnotClosed;
+      const btn = document.getElementById('closureBtn');
+      const label = document.getElementById('closureBtnLabel');
+      
+      if (isKnotClosed) {
+        btn.classList.add('active');
+        label.innerText = "Knot Mode Active";
+        showToast("Knot Closure Enabled!");
+      } else {
+        btn.classList.remove('active');
+        label.innerText = "Knot Closure";
+        showToast("Braid Mode Enabled.");
+      }
+
+      document.getElementById('knotComponentsRow').style.display = isKnotClosed ? 'flex' : 'none';
+      updateUI();
       updateBraidGeometries();
     }
 
-    function updateBraidLabel() {
-      const labelEl = document.getElementById('braidLabel');
-      if (braidWord.length === 0) {
-        labelEl.innerText = "1 (Identità)";
-        return;
-      }
-
-      const formattedStr = braidWord.map(g => {
-        const inv = g.sign === -1 ? '⁻¹' : '';
-        return `σ${g.index}${inv}`;
-      }).join(' ');
-
-      labelEl.innerText = formattedStr;
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2800);
     }
 
-    // --- LOOP DI RENDERING ED ANIMAZIONE ---
+    // --- UI & PERMUTATION COMPUTATION ---
+    function updateUI() {
+      const labelEl = document.getElementById('braidLabel');
+      if (braidWord.length === 0) {
+        labelEl.innerText = "e (Identity)";
+      } else {
+        labelEl.innerText = braidWord.map(g => `σ${g.index}${g.sign === -1 ? '⁻¹' : ''}`).join(' ');
+      }
+
+      document.getElementById('wordLengthVal').innerText = braidWord.length;
+
+      // Compute Permutation Cycle
+      const { currentPermutation } = computeStrandCurves(braidWord, 1.0);
+      const visited = [false, false, false, false];
+      const cycles = [];
+
+      for (let s = 0; s < 4; s++) {
+        if (!visited[s]) {
+          let cycle = [];
+          let curr = s;
+          while (!visited[curr]) {
+            visited[curr] = true;
+            cycle.append ? cycle.append(curr + 1) : cycle.push(curr + 1);
+            curr = currentPermutation.indexOf(curr);
+          }
+          cycles.push(cycle);
+        }
+      }
+
+      const cycleStr = cycles.map(c => `(${c.join('')})`).join('');
+      document.getElementById('permutationVal').innerText = cycleStr;
+
+      if (isKnotClosed) {
+        const numComp = cycles.length;
+        document.getElementById('knotComponentsVal').innerText = 
+          `${numComp} ${numComp === 1 ? 'Knot Component' : 'Link Components'}`;
+      }
+    }
+
+    // --- ANIMATION LOOP ---
     let lastTime = performance.now();
 
     function animate(currentTime) {
@@ -513,7 +900,7 @@
       lastTime = currentTime;
 
       if (isAnimating) {
-        animatedProgress += deltaTime * 2.5; // Velocità animazione
+        animatedProgress += deltaTime * 2.8;
         if (animatedProgress >= 1.0) {
           animatedProgress = 1.0;
           isAnimating = false;
@@ -525,11 +912,12 @@
       renderer.render(scene, camera);
     }
 
-    // Inizializzazione
+    // Initialize
+    updateUI();
     updateBraidGeometries();
     animate(performance.now());
 
-    // Responsive Canvas Resize
+    // Window Resize
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
@@ -537,4 +925,4 @@
     });
   </script>
 </body>
-  </html>
+</html>
