@@ -8,6 +8,7 @@ class B4BraidGenerator:
         self,
         total_length=297.0,
         total_width=190.0,
+        cap_length=20.0,
         strand_radius=8.0,
         height_factor=0.5,
     ):
@@ -17,13 +18,14 @@ class B4BraidGenerator:
         """
         self.total_length = total_length
         self.total_width = total_width
+        self.cap_length = cap_length
         self.strand_radius = strand_radius
 
         # Spacing between adjacent strand centers
         self.x_spacing = (self.total_width - 2 * self.strand_radius) / 3.0
         self.height_over = self.x_spacing * height_factor
 
-        # Normalized RGB colors [0.0, 1.0] for MTL
+        # Colors in normalized RGB [0.0, 1.0] for MTL
         self.colors = {
             1: (0.0 / 255.0, 139.0 / 255.0, 0.0 / 255.0),  # Green: RGB(0,139,0)
             2: (22.0 / 255.0, 0.0 / 255.0, 255.0 / 255.0),  # Blue: RGB(22,0,255)
@@ -44,74 +46,107 @@ class B4BraidGenerator:
             -half_w + 3 * self.x_spacing,
         ]
 
-    def _generate_strand_paths(self, braid_word, steps_per_gen=30):
-        """Generates 3D trajectories for each of the 4 strands."""
+    def _generate_strand_paths(
+        self, braid_word, steps_per_gen=30, cap_steps=10
+    ):
+        """Generates 3D trajectories with straight head/tail caps and smooth braid crossings."""
         paths = {m: [] for m in range(1, 5)}
         current_slots = [1, 2, 3, 4]
 
-        # Starting point at Y = 0
-        for slot_idx, strand_id in enumerate(current_slots):
-            paths[strand_id].append([self.initial_x[slot_idx], 0.0, 0.0])
-
-        # If braid_word is empty, generate identity braid (straight parallel strands)
-        if not braid_word:
-            t_vals = np.linspace(0, 1, steps_per_gen)[1:]
-            for t in t_vals:
-                y = t * self.total_length
+        # 1. HEAD CAP (Straight parallel strands from Y = 0 to Y = cap_length)
+        if self.cap_length > 0:
+            y_head = np.linspace(0, self.cap_length, cap_steps)
+            for y in y_head:
                 for slot_idx, s_id in enumerate(current_slots):
                     paths[s_id].append([self.initial_x[slot_idx], y, 0.0])
-            return {s_id: np.array(pts) for s_id, pts in paths.items()}
+        else:
+            for slot_idx, strand_id in enumerate(current_slots):
+                paths[strand_id].append([self.initial_x[slot_idx], 0.0, 0.0])
 
-        num_generators = len(braid_word)
-        step_length = self.total_length / num_generators
-        current_y = 0.0
+        braid_region_length = self.total_length - 2 * self.cap_length
+        start_y = self.cap_length if self.cap_length > 0 else 0.0
 
-        for gen in braid_word:
-            gen_clean = gen.lower().strip()
-            if not gen_clean:
-                continue
-
-            is_inverse = "inv" in gen_clean
-            sigma_num = int(gen_clean.replace("sigma", "").replace("inv", ""))
-
-            idx1 = sigma_num - 1
-            idx2 = sigma_num
-
-            strand_a = current_slots[idx1]
-            strand_b = current_slots[idx2]
-
-            x1_start, x2_start = self.initial_x[idx1], self.initial_x[idx2]
-            x1_end, x2_end = x2_start, x1_start
-
-            z_a_max = self.height_over if not is_inverse else -self.height_over
-            z_b_max = -self.height_over if not is_inverse else self.height_over
-
-            t_vals = np.linspace(0, 1, steps_per_gen)[1:]
-
-            for t in t_vals:
-                y = current_y + t * step_length
-                factor = (1 - np.cos(np.pi * t)) / 2.0
-
-                xa = x1_start + (x1_end - x1_start) * factor
-                za = z_a_max * np.sin(np.pi * t)
-                paths[strand_a].append([xa, y, za])
-
-                xb = x2_start + (x2_end - x2_start) * factor
-                zb = z_b_max * np.sin(np.pi * t)
-                paths[strand_b].append([xb, y, zb])
-
+        # 2. BRAIDING SECTION
+        if not braid_word or braid_region_length <= 0:
+            # Straight strands through the middle section if word is empty or caps cover full length
+            y_mid = np.linspace(
+                start_y, start_y + braid_region_length, steps_per_gen
+            )[1:]
+            for y in y_mid:
                 for slot_idx, s_id in enumerate(current_slots):
-                    if s_id not in (strand_a, strand_b):
-                        x_curr = self.initial_x[slot_idx]
-                        paths[s_id].append([x_curr, y, 0.0])
+                    paths[s_id].append([self.initial_x[slot_idx], y, 0.0])
+        else:
+            num_generators = len(braid_word)
+            step_length = braid_region_length / num_generators
+            current_y = start_y
 
-            current_slots[idx1], current_slots[idx2] = strand_b, strand_a
-            current_y += step_length
+            for gen in braid_word:
+                gen_clean = gen.lower().strip()
+                if not gen_clean:
+                    continue
+
+                is_inverse = "inv" in gen_clean
+                sigma_num = int(
+                    gen_clean.replace("sigma", "").replace("inv", "")
+                )
+
+                idx1 = sigma_num - 1
+                idx2 = sigma_num
+
+                strand_a = current_slots[idx1]
+                strand_b = current_slots[idx2]
+
+                x1_start, x2_start = self.initial_x[idx1], self.initial_x[idx2]
+                x1_end, x2_end = x2_start, x1_start
+
+                z_a_max = (
+                    self.height_over if not is_inverse else -self.height_over
+                )
+                z_b_max = (
+                    -self.height_over if not is_inverse else self.height_over
+                )
+
+                t_vals = np.linspace(0, 1, steps_per_gen)[1:]
+
+                for t in t_vals:
+                    y = current_y + t * step_length
+                    # Smooth cosinusoidal transition in X
+                    factor = (1 - np.cos(np.pi * t)) / 2.0
+
+                    # Smooth sin^2 transition in Z (ensures zero derivative at boundaries)
+                    z_factor = (np.sin(np.pi * t)) ** 2
+
+                    xa = x1_start + (x1_end - x1_start) * factor
+                    za = z_a_max * z_factor
+                    paths[strand_a].append([xa, y, za])
+
+                    xb = x2_start + (x2_end - x2_start) * factor
+                    zb = z_b_max * z_factor
+                    paths[strand_b].append([xb, y, zb])
+
+                    for slot_idx, s_id in enumerate(current_slots):
+                        if s_id not in (strand_a, strand_b):
+                            x_curr = self.initial_x[slot_idx]
+                            paths[s_id].append([x_curr, y, 0.0])
+
+                current_slots[idx1], current_slots[idx2] = strand_b, strand_a
+                current_y += step_length
+
+        # 3. TAIL CAP (Straight parallel strands from Y = total_length - cap_length to Y = total_length)
+        if self.cap_length > 0:
+            y_tail = np.linspace(
+                self.total_length - self.cap_length,
+                self.total_length,
+                cap_steps,
+            )[1:]
+            for y in y_tail:
+                for slot_idx, s_id in enumerate(current_slots):
+                    paths[s_id].append([self.initial_x[slot_idx], y, 0.0])
 
         return {s_id: np.array(pts) for s_id, pts in paths.items()}
 
     def _build_tube(self, curve, sides=16):
-        """Constructs a 3D cylindrical mesh with OUTWARD facing normals."""
+        """Constructs a 3D cylindrical mesh with OUTWARD facing normals (CCW order)."""
         num_pts = len(curve)
         verts, faces = [], []
 
@@ -205,9 +240,14 @@ if __name__ == "__main__":
     print("        B4 BRAID 3D MODEL GENERATOR       ")
     print("==========================================\n")
 
+    # Prompt 1: Braid Word
     print("Enter braid generators separated by spaces or commas.")
-    print("Valid generators: sigma1, sigma2, sigma3, sigma1inv, sigma2inv, sigma3inv")
-    print("Leave empty and press ENTER to generate the identity braid (straight strands).\n")
+    print(
+        "Valid generators: sigma1, sigma2, sigma3, sigma1inv, sigma2inv, sigma3inv"
+    )
+    print(
+        "Leave empty and press ENTER to generate the identity braid (straight strands).\n"
+    )
     word_input = input("Braid Word: ").strip()
 
     if word_input:
@@ -217,12 +257,21 @@ if __name__ == "__main__":
     else:
         braid_word = []
 
+    # Prompt 2: Total Length
     length_input = input("\nEnter total length in mm [Default: 297]: ").strip()
     total_length = float(length_input) if length_input else 297.0
 
+    # Prompt 3: Total Width
     width_input = input("Enter total width in mm [Default: 190]: ").strip()
     total_width = float(width_input) if width_input else 190.0
 
+    # Prompt 4: Cap Length (Head and Tail Straight Sections)
+    cap_input = input(
+        "Enter straight cap length at ends in mm [Default: 20]: "
+    ).strip()
+    cap_length = float(cap_input) if cap_input else 20.0
+
+    # Prompt 5: File Name
     default_filename = "braid_identity" if not braid_word else "braid_model"
     filename_input = input(
         f"Enter output file name [Default: {default_filename}]: "
@@ -230,6 +279,8 @@ if __name__ == "__main__":
     filename = filename_input if filename_input else default_filename
 
     generator = B4BraidGenerator(
-        total_length=total_length, total_width=total_width
+        total_length=total_length,
+        total_width=total_width,
+        cap_length=cap_length,
     )
     generator.generate_files(braid_word, filename)
