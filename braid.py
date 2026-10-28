@@ -19,12 +19,11 @@ class B4BraidGenerator:
         self.total_width = total_width
         self.strand_radius = strand_radius
 
-        # Calculate spacing between adjacent strand centers
-        # Total width = 3 * spacing + 2 * strand_radius
+        # Spacing between adjacent strand centers
         self.x_spacing = (self.total_width - 2 * self.strand_radius) / 3.0
         self.height_over = self.x_spacing * height_factor
 
-        # Colors in normalized RGB [0.0, 1.0] for MTL
+        # Normalized RGB colors [0.0, 1.0] for MTL
         self.colors = {
             1: (0.0 / 255.0, 139.0 / 255.0, 0.0 / 255.0),  # Green: RGB(0,139,0)
             2: (22.0 / 255.0, 0.0 / 255.0, 255.0 / 255.0),  # Blue: RGB(22,0,255)
@@ -112,7 +111,7 @@ class B4BraidGenerator:
         return {s_id: np.array(pts) for s_id, pts in paths.items()}
 
     def _build_tube(self, curve, sides=16):
-        """Constructs a 3D cylindrical mesh around the strand centerline."""
+        """Constructs a 3D cylindrical mesh with OUTWARD facing normals."""
         num_pts = len(curve)
         verts, faces = [], []
 
@@ -152,8 +151,9 @@ class B4BraidGenerator:
                 v3 = (i + 1) * sides + j + 1
                 v4 = (i + 1) * sides + next_j + 1
 
-                faces.append([v1, v3, v2])
-                faces.append([v2, v3, v4])
+                # Counter-Clockwise (CCW) winding order -> Outward normals
+                faces.append([v1, v2, v3])
+                faces.append([v2, v4, v3])
 
         return np.array(verts), np.array(faces)
 
@@ -205,7 +205,6 @@ if __name__ == "__main__":
     print("        B4 BRAID 3D MODEL GENERATOR       ")
     print("==========================================\n")
 
-    # Prompt 1: Braid Word
     print("Enter braid generators separated by spaces or commas.")
     print("Valid generators: sigma1, sigma2, sigma3, sigma1inv, sigma2inv, sigma3inv")
     print("Leave empty and press ENTER to generate the identity braid (straight strands).\n")
@@ -218,15 +217,12 @@ if __name__ == "__main__":
     else:
         braid_word = []
 
-    # Prompt 2: Total Length
     length_input = input("\nEnter total length in mm [Default: 297]: ").strip()
     total_length = float(length_input) if length_input else 297.0
 
-    # Prompt 3: Total Width
     width_input = input("Enter total width in mm [Default: 190]: ").strip()
     total_width = float(width_input) if width_input else 190.0
 
-    # Prompt 4: File Name
     default_filename = "braid_identity" if not braid_word else "braid_model"
     filename_input = input(
         f"Enter output file name [Default: {default_filename}]: "
